@@ -152,3 +152,44 @@ end
 
 mp.register_event("shutdown", history)
 mp.register_event("file-loaded", history)
+
+--[[
+    Allows this script to be run as an addon for file-browser.
+    Only works with local files.
+
+    This is just an experiment, don't exepect it to work well.
+]]--
+local is_addon, fb = pcall(require, 'file-browser')
+if is_addon then
+    local addon = {
+        version = '1.3.0',
+        name = 'history'
+    }
+
+    function addon:can_parse(directory)
+        return directory:find('^[hH]istory/')
+    end
+
+    function addon:parse()
+        local f = io.open(o.storage_path, "r")
+        if not f then return end
+
+        local list = {}
+        local lines = {}
+        for line in f:lines() do table.insert(lines, line) end
+
+        for i = #lines, 1, -1 do
+            local filename = lines[i]:match('^%d%d.%d%d.%d%d%d%d %d%d:%d%d   %d+ (.+)$')
+            local name = string.match(filename, '[^/\\]+$')
+            table.insert(list, {
+                name = name or filename,
+                path = filename,
+                type = 'file'
+            })
+        end
+
+        return list, { sorted = true, filtered = true }
+    end
+
+    return addon
+end
